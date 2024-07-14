@@ -88,9 +88,9 @@ export const Alluvian = () => {
 
             }
 
-            const segmentationSumWeings = (nodes) => {
+            const segmentationSumWeings = (nodes, column) => {
                 let nodesIncules = []
-                let wights = {}
+                let wights = {"column": column}
                 //voy buscando si este nodoe tiene uno o mas links y cuento la cantidad delinks que tiene para para generarle un peso y con eso puedo sacar las escales y ubicar exatamento los links 
                 nodes.forEach((link) => {
                     if (nodesIncules.includes(link.target)) {
@@ -114,14 +114,14 @@ export const Alluvian = () => {
                     //aca saco los pesaso para los lonos de la izquierda y de la derecha 
                     if (nodes.left.length) {
 
-                        allWights[nodes.left[0].source] = segmentationSumWeings(nodes.left)
-                       
+                        allWights[nodes.left[0].source] = segmentationSumWeings(nodes.left, "left")
+
                     }
-                  
+
                     if (nodes.right.length) {
 
-                        allWights[nodes.right[0].target] = segmentationSumWeings(nodes.right)
-                      
+                        allWights[nodes.right[0].target] = segmentationSumWeings(nodes.right, "rigth")
+
                     }
                 })
 
@@ -129,23 +129,24 @@ export const Alluvian = () => {
 
             }
 
-            const scaler = (domain, range) => {
-                return d3.scaleLinear()
-                    .domain(domain)
-                    .range(range)
-            }
 
-            
+
+
+
+
             //colo los persos para los nodos es decir como se va a distribuir el espacio de las barrras para la cantidad e links que tengan 
-            const totalLinks = dataAlluvian.length
-            const scalerColumns = scaler([1, totalLinks], [marginTop, height])
-
+            const totalLinks = dataAlluvian.links.length
+            const scalerColumns = d3.scaleLinear()
+                .domain([1, totalLinks])
+                .range([0, height])
+            
             setColumnsScalerWeigs({
                 weings: wightsNodes(),
                 scalerColumns,
-                totalLinks
+                totalLinks,
+                columnsFilter
             })
-            
+
         }
 
     }, [dataAlluvian])
@@ -153,7 +154,7 @@ export const Alluvian = () => {
     useEffect(() => {
         //Basics thins in graph 
         //dimentions 
-       
+
         if (svgRef.current && columnsScalerWeigs != null) {
 
             //const values = data.map(value => value.value)
@@ -165,10 +166,10 @@ export const Alluvian = () => {
                 .range([0, height])
             */
 
-    
-                console.log("domain ......>>>>< hsl(" + Math.random() * 360 + ",100%,50%)")
+
+            console.log("domain ......>>>>< hsl(" + Math.random() * 360 + ",100%,50%)")
             // svg base
-          const svg = d3.select(svgRef.current)
+            const svg = d3.select(svgRef.current)
                 .attr("width", width)
                 .attr("height", height)
 
@@ -176,42 +177,69 @@ export const Alluvian = () => {
             let sumWithbefore = 0;
             let sumWith = 0;
             const beforeScale = (d) => {
-                
-                if (sumWith === 0) {
-                    sumWithbefore = scalerX(d.value)
-                    sumWith += scalerX(d.value)
-                    return 0
-                } else {
-                    sumWithbefore = scalerX(d.value)
-                    sumWith += scalerX(d.value)
-                    return sumWith - sumWithbefore
+
+                let sumWitgs = 0;
+                for (const [key, value] of Object.entries(d)) {
+                    if(key != "column")
+                    sumWitgs += value
                 }
+                
+                 if (sumWith === 0) {
+                     sumWithbefore = columnsScalerWeigs.scalerColumns(sumWitgs)
+                     sumWith += columnsScalerWeigs.scalerColumns(sumWitgs)
+                     return 0
+                 } else {
+                     sumWithbefore = columnsScalerWeigs.scalerColumns(sumWitgs)
+                     sumWith += columnsScalerWeigs.scalerColumns(sumWitgs)
+                     return sumWith - sumWithbefore
+                 }
             }
-            //add the axis x
+
+            const sumValues = (d) => {
+                let sumWitgs = 0;
+                for (const [key, value] of Object.entries(d)) {
+                    if(key != "column")
+                    sumWitgs += value
+                }
+                return sumWitgs
+            }
+
+
+
+            console.log(columnsScalerWeigs.weings)
+            let columnLeft = []
+            columnsScalerWeigs.weings.forEach((weigh)=> {
+                if(weigh.column == "left")
+                    columnLeft.push(weigh)
+            })
+            //add the axis y left
+            d3.select(y_axistRef.current)
+            .selectAll('*').remove()
+
 
             d3.select(y_axistRef.current)
                 .selectAll('g')
-                .data(columnsScalerWeigs.weings)
+                .data(columnLeft)
                 .enter().append('rect')
-                .attr('x', 0)
+                .attr('x', 30)
                 .attr('y', beforeScale)
                 .attr('width', 15)
-                .attr('height', (d) => scalerX(d.value))
-                .attr('fill', (d) => d.color)
+                .attr('height', (d) => columnsScalerWeigs.scalerColumns(sumValues(d)))
+                .attr('fill', '#'+(Math.random() * 0xFFFFFF << 0).toString(16).padStart(6, '0'))
 
             sumWithbefore = 0;
             sumWith = 0;
 
-            d3.select(y_other_axistRef.current)
+            /*d3.select(y_other_axistRef.current)
                 .selectAll('g')
                 .data(data)
                 .enter().append('rect')
                 .attr('x', width - 15)
                 .attr('y', beforeScale)
                 .attr('width', 15)
-                .attr('height', (d) => scalerX(d.value))
-                .attr('fill', (d) => d.color)
-
+                .attr('height', (d) => columnsScalerWeigs.scalerColumns(sumValues(d)))
+                .attr('fill', "hsl(" + Math.random() * 360 + ",100%,50%)")
+            */
 
 
             const lineGenerator = d3.line()
@@ -263,7 +291,7 @@ export const Alluvian = () => {
 
 
         }
-    }, [y_axistRef])
+    }, [y_axistRef, columnsScalerWeigs])
 
 
     return (
