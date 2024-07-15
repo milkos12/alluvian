@@ -3,12 +3,6 @@ import * as d3 from 'd3';
 
 import { useEffect, useRef, useState } from 'react';
 
-
-const data = [{ id: 1, value: 10, color: "#DAF7A6" }, { id: 2, value: 30, color: "#FFC300" }, { id: 3, value: 20, color: "#FF5733" }, { id: 4, value: 40, color: "#581845" }]
-//rango sería la suma de los valores en este caso sería 100
-const cordenatesLines = [{ x: 82, y: 438 }, { x: 264, y: 175 }]
-
-
 export const Alluvian = () => {
 
     const y_axistRef = useRef(null);
@@ -25,7 +19,7 @@ export const Alluvian = () => {
         marginTop,
         marginRigth,
         marginBottom,
-        marginLeft] = [640, 400, 20, 20, 30, 40];
+        marginLeft] = [640, 800, 20, 20, 30, 40];
 
 
     useEffect(() => {
@@ -49,14 +43,29 @@ export const Alluvian = () => {
 
     }, [])
 
-    //esto saca los tipo de la derecha y la izquierda asi como tambine toda la datao 
-    //la filtrar y clasificar tambien me va funcionar para darle las dimenciones a los links 
+    //esto saca los nodos de la derecha y de la izquierda asi como tambinen la data
+    //la filtra y clasifica por columnuas derecha y izquerda tambien me va funcionar para darle las dimenciones a los links 
     useEffect(() => {
         if (dataAlluvian) {
 
-            //determinate values in left and right 
+            //con esto dtermino los values in izquierda and derecha 
             //para entender el por que de los index en la comparacion del index 
-            //la documentacion lo explica bien 
+            //la documentacion lo explica bien
+            //https://d3js.org/d3-force/link#link_links
+            //este es el ejemplo 
+            /*
+            const nodes = [
+                    {"id": "Alice"},
+                    {"id": "Bob"},
+                    {"id": "Carol"}
+            ];
+
+            const links = [
+                {"source": 0, "target": 1}, // Alice → Bob
+                {"source": 1, "target": 2} // Bob → Carol
+            ];
+            */
+
             const columnsFilter = dataAlluvian.nodes.map((rows, index) => {
                 const filterRigth = dataAlluvian.links.filter(uniqueLink => uniqueLink.target == index)
                 const filterLeft = dataAlluvian.links.filter(uniqueLink => uniqueLink.source == index)
@@ -76,51 +85,58 @@ export const Alluvian = () => {
 
             //setColumns(columns)
 
-            const totalWightColumn = (column) => {
-                let totalWightColumn = 0;
 
-                column.map(divitionsColumns => {
-                    totalWightColumn += divitionsColumns.length
-
-                });
-
-                return totalWightColumn
-
-            }
-
-            const segmentationSumWeings = (nodes, column) => {
+            //con esto genereo el dominio para los nodos en las columnas derecha y izquierda 
+            const segmentationSumWeings = (nodes, column, node) => {
                 let nodesIncules = []
-                let wights = {"column": column}
-                //voy buscando si este nodoe tiene uno o mas links y cuento la cantidad delinks que tiene para para generarle un peso y con eso puedo sacar las escales y ubicar exatamento los links 
+                let wights = { column, node }
+                //voy buscando si este node tiene uno o mas links y cuento la cantidad delinks que tiene para generarle un peso y con eso puedo sacar las escales dentro de los nodos y determinar después de donde sasele los links 
                 nodes.forEach((link) => {
-                    if (nodesIncules.includes(link.target)) {
-                        //ese uno quiere decir que el link ya existe y le sumamaos uno que quiere decir que ahy uno mas aumenta el peso
-                        wights[link.target] += 1
-                    } else {
-                        //aca es porque el link no existe y se agreaga y se le coloca el contador en uno 
-                        nodesIncules.push(link.target)
-                        wights[link.target] = 1
+
+                    //estos ifs the left y right son por la clarsificaion que hice al principio 
+                    if (column == "left") {
+                        if (nodesIncules.includes(link.target)) {
+                            //ese uno quiere decir que el link ya existe y le sumamaos uno que quiere decir que ahy uno mas aumenta el peso
+                            wights[link.target] += 1
+                        } else {
+                            //aca es porque el link no existe y se agreaga y se le coloca el contador en uno 
+                            nodesIncules.push(link.target)
+                            wights[link.target] = 1
+                        }
+                    }
+
+                    //lo mismo anterior pero la para la derecha 
+                    if (column == "rigth") {
+                        if (nodesIncules.includes(link.source)) {
+                            //ese uno quiere decir que el link ya existe y le sumamaos uno que quiere decir que ahy uno mas aumenta el peso
+                            wights[link.source] += 1
+                        } else {
+                            //aca es porque el link no existe y se agreaga y se le coloca el contador en uno 
+                            nodesIncules.push(link.source)
+                            wights[link.source] = 1
+                        }
                     }
                 })
 
                 return wights
             }
 
+            //suma todos links que hay (como las conexciones) que hay  en derecha y izquierda 
             const wightsNodes = () => {
 
                 let allWights = []
 
                 columnsFilter.map(nodes => {
-                    //aca saco los pesaso para los lonos de la izquierda y de la derecha 
+                    //aca saco los pesasos para los los nodos de la izquierda y de la derecha (la cantidad de conecciones repetidas en el archivo links_aluvian las reptedidas representa un solo links y como estan repetidas eso lesva a dar como el peso por asi decirlo  )
                     if (nodes.left.length) {
-
-                        allWights[nodes.left[0].source] = segmentationSumWeings(nodes.left, "left")
+                        const node = nodes.left[0].source
+                        allWights[node] = segmentationSumWeings(nodes.left, "left", node)
 
                     }
 
                     if (nodes.right.length) {
-
-                        allWights[nodes.right[0].target] = segmentationSumWeings(nodes.right, "rigth")
+                        const node = nodes.right[0].target
+                        allWights[node] = segmentationSumWeings(nodes.right, "rigth", node)
 
                     }
                 })
@@ -134,12 +150,12 @@ export const Alluvian = () => {
 
 
 
-            //colo los persos para los nodos es decir como se va a distribuir el espacio de las barrras para la cantidad e links que tengan 
+            //colo los pesos para los nodos es decir como se va a distribuir el espacio de las barrras para la cantidad e links que tengan 
             const totalLinks = dataAlluvian.links.length
             const scalerColumns = d3.scaleLinear()
                 .domain([1, totalLinks])
                 .range([0, height])
-            
+
             setColumnsScalerWeigs({
                 weings: wightsNodes(),
                 scalerColumns,
@@ -157,135 +173,259 @@ export const Alluvian = () => {
 
         if (svgRef.current && columnsScalerWeigs != null) {
 
-            //const values = data.map(value => value.value)
-            //let sumValues = columnsScalerWeigs.totalLinks;
-            //values.forEach(value => sumValues += value);
-
-            /*const scalerX = d3.scaleLinear()
-                .domain([0, sumValues])
-                .range([0, height])
-            */
-
-
-            console.log("domain ......>>>>< hsl(" + Math.random() * 360 + ",100%,50%)")
             // svg base
-            const svg = d3.select(svgRef.current)
+            d3.select(svgRef.current)
                 .attr("width", width)
                 .attr("height", height)
 
+            //esto me ayuda a almacenar los valores y no perderlos cuando la funcion haga el return porque los necesito para mas adelante con el resto de nodos 
+            let sumHigthbefore = 0;
+            let sumHingth = 0;
 
-            let sumWithbefore = 0;
-            let sumWith = 0;
+            //cacluo del los scales(alturas o heings)
             const beforeScale = (d) => {
 
                 let sumWitgs = 0;
                 for (const [key, value] of Object.entries(d)) {
-                    if(key != "column")
-                    sumWitgs += value
+                    //aca sumo la cantidad de links que tiene cadad node. en la variable para que no sevea tan feo y tan largo dentro del if 
+                    const validation = key != "column" && key != "beforeSca" && key != "node"
+                    if (validation)
+                        sumWitgs += value
                 }
-                
-                 if (sumWith === 0) {
-                     sumWithbefore = columnsScalerWeigs.scalerColumns(sumWitgs)
-                     sumWith += columnsScalerWeigs.scalerColumns(sumWitgs)
-                     return 0
-                 } else {
-                     sumWithbefore = columnsScalerWeigs.scalerColumns(sumWitgs)
-                     sumWith += columnsScalerWeigs.scalerColumns(sumWitgs)
-                     return sumWith - sumWithbefore
-                 }
+
+                //si sumHingth es igual a 0  quiere decir que esta en la posicion inicial por eso se devuelve 0 
+                //ya si no es cero lo que se hace es que se empeiza asumar sobre los height generados por base del scale genrada anteiromete  
+                if (sumHingth === 0) {
+                    sumHigthbefore = columnsScalerWeigs.scalerColumns(sumWitgs)
+                    sumHingth += columnsScalerWeigs.scalerColumns(sumWitgs)
+                    return 0
+                } else {
+                    sumHigthbefore = columnsScalerWeigs.scalerColumns(sumWitgs)
+                    sumHingth += columnsScalerWeigs.scalerColumns(sumWitgs)
+                    return sumHingth - sumHigthbefore
+                }
             }
 
+            //sumo todos los pesos de cada link que tiene cada nodo
+            //y aprovecho las referencias en memoría para guarda un array los links para que me quede facil usarlos mas adelan y que no queden en el mismo nivel de los otros datos
             const sumValues = (d) => {
+                let linksArray = []
                 let sumWitgs = 0;
                 for (const [key, value] of Object.entries(d)) {
-                    if(key != "column")
-                    sumWitgs += value
+                    const validation = key != "column" && key != "beforeSca" && key != "node"
+                    if (validation) {
+                        sumWitgs += value
+                        let link = {}
+                        link[key] = value
+                        linksArray.push(link)
+                    }
+
                 }
+
+                d['linksArray'] = linksArray
                 return sumWitgs
             }
 
 
 
-            console.log(columnsScalerWeigs.weings)
+            //extraer los datos para la columna de la izquierda 
             let columnLeft = []
-            columnsScalerWeigs.weings.forEach((weigh)=> {
-                if(weigh.column == "left")
+            columnsScalerWeigs.weings.forEach((weigh, index) => {
+
+                if (weigh.column == "left")
                     columnLeft.push(weigh)
             })
-            //add the axis y left
+
+            //aca cree una funcion para genera el un scaler pero basado en la altura eso econ el fin de poder distriburi el espacio para los links  
+            const scalerLinkns = (curentScaleY, sumWingLinks) => {
+                return d3.scaleLinear()
+                    .domain([0, sumWingLinks])
+                    .range([0, curentScaleY])
+            }
+
+            //aca uso nuevamente las referencias en memoria para guardar informacion que me ayuda a ubicar los links 
+            
+            const saveCorrdenatesYEachNode = (d) => {
+
+                const scaler = scalerLinkns(d.curentScaleY, d.sumLinks, d.beforeSca)
+
+                d['scalerLinks'] = scaler
+                //colcoar valor de expacio disponoblibe para poder ubicar los links 
+                d['usedSpace'] = 0
+
+
+            }
+
+            //cuando se recarga no se borran los elementos dentro del svg y toca removerlos 
             d3.select(y_axistRef.current)
-            .selectAll('*').remove()
+                .selectAll('*').remove()
 
-
+            //la escala hace refercian a la altura se colocan fuera por que necesito ir almacinadolar para usarlas en distintas partes del bloque 
+            let curentScaleY = 0;
+            let beforeSca = 0;
+            let sumWingLinks = 0;
             d3.select(y_axistRef.current)
                 .selectAll('g')
                 .data(columnLeft)
                 .enter().append('rect')
                 .attr('x', 30)
-                .attr('y', beforeScale)
+                .attr('y', (d) => {
+                    beforeSca = beforeScale(d)
+
+                    d['beforeSca'] = beforeSca
+
+
+                    return beforeSca
+                })
                 .attr('width', 15)
-                .attr('height', (d) => columnsScalerWeigs.scalerColumns(sumValues(d)))
-                .attr('fill', '#'+(Math.random() * 0xFFFFFF << 0).toString(16).padStart(6, '0'))
+                .attr('height', (d) => {
+                    //aca dtermino la alturoa del nodo y guardo la informacion y tambie uso las referncia en memoria para gardar curentScaleY y sumWingLinks
+                    //tabine sumo todos los links para determinar su altura 
+                    sumWingLinks = sumValues(d)
+                    curentScaleY = columnsScalerWeigs.scalerColumns(sumWingLinks)
+                    d['curentScaleY'] = curentScaleY
+                    d['sumLinks'] = sumWingLinks
+                    return curentScaleY
 
-            sumWithbefore = 0;
-            sumWith = 0;
+                })
+                .attr('fill', (d) => '#' + (Math.random() * 0xFFFFFF << 0).toString(16).padStart(6, '0'))
+                .each((d) => {
+                    // esta funcion me va generar por decirlo las subdivision dentro de cada node para saber que tangrandes y como debe ir los links
+                    saveCorrdenatesYEachNode(d)
 
-            /*d3.select(y_other_axistRef.current)
+                })
+                .attr("node", (d) => d.node)
+
+
+
+
+
+
+
+
+            sumHigthbefore = 0;
+            sumHingth = 0;
+
+            let columnRigth = []
+            columnsScalerWeigs.weings.forEach((weigh) => {
+                if (weigh.column == "rigth")
+                    columnRigth.push(weigh)
+            })
+
+
+            //aca en este bloque de codigoo hago excatamente lo mismo pero con la barra de la izquierda
+            curentScaleY = 0;
+            beforeSca = 0;
+            sumWingLinks = 0;
+
+            d3.selectAll(y_other_axistRef.current).selectAll('*').remove()
+            d3.select(y_other_axistRef.current)
                 .selectAll('g')
-                .data(data)
+                .data(columnRigth)
                 .enter().append('rect')
                 .attr('x', width - 15)
-                .attr('y', beforeScale)
+                .attr('y', (d) => {
+                    beforeSca = beforeScale(d)
+
+                    d['beforeSca'] = beforeSca
+
+
+                    return beforeSca
+                })
                 .attr('width', 15)
-                .attr('height', (d) => columnsScalerWeigs.scalerColumns(sumValues(d)))
-                .attr('fill', "hsl(" + Math.random() * 360 + ",100%,50%)")
-            */
+                .attr('height', (d) => {
+                    sumWingLinks = sumValues(d)
+                    curentScaleY = columnsScalerWeigs.scalerColumns(sumWingLinks)
+                    d['curentScaleY'] = curentScaleY
+                    d['sumLinks'] = sumWingLinks
+                    return curentScaleY
+
+                })
+                .attr('fill', (d) => "hsl(" + Math.random() * 360 + ",100%,50%)")
+                .each((d) => {
+
+                    saveCorrdenatesYEachNode(d)
+
+                })
+                .attr("node", (d) => d.node)
+
+            //testear las posicione de los links ------------------------------------
+
+            const currentNode = columnLeft[0]
 
 
-            const lineGenerator = d3.line()
-                //.x((d)=> d.x)
-                //.y((d)=> d.y)
-                .curve(d3.curveCardinalOpen)
 
-            const corrdenates = [[100, 60], [40, 90], [200, 80], [300, 150]]
-            const testCurve = [[248, 20], [marginLeft, 60], [60, 200], [200, height], [height - 350, height]]
 
-            console.log("------>>> ", lineGenerator(testCurve))
-            const example = lineGenerator(testCurve)
 
+            //------------------------------------
 
             const link = d3.link(d3.curveBumpX)
-            console.log("--------links----->>> ", link({ source: [marginLeft + 30, marginLeft], target: [width / 2, height] }))
+
+
+            //buscar y devolber la posicio para el link desde la izquierda 
+            const enterToRaightColumn = (valorFromLeft, useSpace) => {
+
+                let postionForLink = 0
+                columnRigth.forEach((node) => {
+                    if (node.node == valorFromLeft) {
+
+                        //aca lo que hago es entrar ala posicoin donde empiesa el nodo y le sumo el espacio usado esto me da el espacio que pueduo usar 
+                        //este valor meda desde donde va ir el link 
+                        postionForLink = node.beforeSca + node.usedSpace
+                        //actuzlizo el espacio usado 
+                        node.usedSpace = node.usedSpace + useSpace
+
+
+                    }
+                })
+
+                return postionForLink
+
+            }
             //256 posicion de x mas el ancho de link divido en dos 7.5 
-            const linkPath = link({ source: [15, 20], target: [width - 15, 180] });
-            d3.select(link_ref.current)
-                .selectAll('g')
-                .data([null]).join('path')
-                .attr('d', linkPath)
-                .attr('stroke', 'black')
-                .attr('fill', 'none')
-                .attr('stroke-width', 40)
+
+            const generateLinkPath = (startdY, scaler, node) => {
+                //trare la posicion del link para la izquierda 
+                const positionTarget = enterToRaightColumn(node, scaler)
+
+                // positionTarget + (scaler / 2) esto espor que la posiscion se centra y la mitat queda antes de iniciar el nodeo y la otra midad si queda dentro del nodo por eso toca dibider el cansho y sumarselo para que no quede la mitad inicia fuera del nodo 
+                const linkPath = link({ source: [40, startdY], target: [width - 15, positionTarget + (scaler / 2)] });
+                return linkPath
+            }
 
 
+            let sumHeigLinks = 0;
+            // generacion de los links voy node por node en de la izquierda y basado en esta izquierda voy a generar las coodrdenas en la parte derecha en target
+            columnLeft.forEach((columnLeftNodes) => {
+                d3.select(link_ref.current)
+                    .selectAll('g')
+                    .data(columnLeftNodes.linksArray).join('path')
+                    .attr('d', (d) => {
+                        //el array que había creado de los links que había creado anteriormente
+                        const parseArrayLinks = Object.entries(d)
+                        
+                        const escaler = currentNode.scalerLinks(parseArrayLinks[0][1])
+
+                        sumHeigLinks += escaler
+                        //esto es por que el link posciciona su centro al inicion lo que hace que la otra mitad incial qude atras ocupando esapcio que no le corresponde 
+                        const startdY = (sumHeigLinks - escaler) + (escaler / 2)
+                        return generateLinkPath(startdY, escaler, parseArrayLinks[0][0])
+                    })
+                    .attr('stroke-width', (d) => {
+                        const parseArrayLinks = Object.entries(d)
+                        //con el scaler determino el andho del link 
+                        const escaler = currentNode.scalerLinks(parseArrayLinks[0][1])
+                        return escaler
+                    })
+
+                    .attr('stroke', (d) => "hsl(" + Math.random() * 360 + ",100%,50%)")
+                    .attr('fill', 'none')
+                    .attr('fill-opacity', '50%')
+            })
 
 
-            const linkPath2 = link({ source: [15, 260], target: [width - 15, 220] });
-            d3.select(link_ref_2.current)
-                .selectAll('g')
-                .data([null]).join('path')
-                .attr('d', linkPath2)
-                .attr('stroke', 'black')
-                .attr('stroke-width', 40)
-                .attr('fill', 'none')
+            //manula calculate soruce 
 
-
-            /*
-
-            d3.select(y_axistRef.current)
-            .selectAll('div')
-            .data([1,2,3,4,5])
-            .enter().append('div')
-            .text(d=>d)*/
 
 
 
