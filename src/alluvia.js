@@ -10,7 +10,8 @@ export const Alluvian = () => {
     const svgRef = useRef(null);
     const link_ref = useRef(null);
     const tooltip = useRef(null);
-    const tex_ref = useRef(null);
+    const tex_ref_rigth = useRef(null);
+    const tex_ref_left = useRef(null);
     const [dataAlluvian, setDataAlluvian] = useState(null);
     const [columnsScalerWeigs, setColumnsScalerWeigs] = useState(null)
 
@@ -126,11 +127,11 @@ export const Alluvian = () => {
             const wightsNodes = () => {
 
                 let allWights = []
-                console.log("data nodes ---->>>> ", columnsFilter)
+
                 columnsFilter.map(nodes => {
                     //aca saco los pesasos para los los nodos de la izquierda y de la derecha (la cantidad de conecciones repetidas en el archivo links_aluvian las reptedidas representa un solo links y como estan repetidas eso lesva a dar como el peso por asi decirlo  )
                     if (nodes.left.length) {
-                        
+
                         const node = nodes.left[0].source
                         allWights[node] = segmentationSumWeings(nodes.left, "left", node)
 
@@ -301,7 +302,7 @@ export const Alluvian = () => {
 
 
 
-            
+
 
 
 
@@ -400,7 +401,7 @@ export const Alluvian = () => {
             d3.select(link_ref.current).selectAll('*').remove()
             // generacion de los links voy node por node en de la izquierda y basado en esta izquierda voy a generar las coodrdenas en la parte derecha en target
             columnLeft.forEach((columnLeftNodes) => {
-            
+
                 d3.select(link_ref.current)
                     .selectAll('g')
                     .data(columnLeftNodes.linksArray).join('path')
@@ -423,7 +424,7 @@ export const Alluvian = () => {
                     })
                     //aditional information 
                     .attr('data-node-origin', (d) => columnLeftNodes.node)
-                    .attr('data-node-destination', (d)=>{
+                    .attr('data-node-destination', (d) => {
                         const parseArrayLinks = Object.entries(d)
                         return parseArrayLinks[0][0]
                     })
@@ -444,7 +445,7 @@ export const Alluvian = () => {
                             return texToolTop
                         }
 
-        
+
 
                         d3.select(tooltip.current).selectAll('*').remove()
                         d3.select(tooltip.current)
@@ -472,39 +473,58 @@ export const Alluvian = () => {
 
             })
 
-            
-            if(columnLeft.length) {
+
+            if (columnLeft.length) {
                 //put the textleables 
-         
-        
-            let currentScaleY = 0;
-            d3.select(tex_ref.current)
-            .selectAll('text')
-            .data(columnLeft)
-            .enter()
-            .append('text')
-            .text("type nodeees")
-            .attr('fill', 'red')
-            .attr('x', 5)
-            .attr('y', (d)=> {
-                const hiehtNode  =  d.curentScaleY
-                
-                //positionatnion  for leables base in the escaler of nodes 
-                //divide y suma entre dos para no dejar el texto en el principio sino en el centro 
-                let positonY = 0;
-                if(currentScaleY > 0){
-                    positonY =  currentScaleY + (hiehtNode/2)
-                    
-                } {
-                    positonY = currentScaleY + (hiehtNode/2)
+
+
+                const generteLeables = (columnData, postionX, ref) => {
+
+                    let currentScaleY = 0;
+                    d3.select(ref.current)
+                        .selectAll('text')
+                        .data(columnData)
+                        .enter()
+                        .append('text')
+                        .attr('fill', 'red')
+                        .attr('x', postionX)
+                        .attr('y', (d) => {
+                            const hiehtNode = d.curentScaleY
+
+                            //positionatnion  for leables base in the escaler of nodes 
+                            //divide y suma entre dos para no dejar el texto en el principio sino en el centro 
+                            let positonY = 0;
+                            if (currentScaleY > 0) {
+                                positonY = currentScaleY + (hiehtNode / 2)
+
+                            } {
+                                positonY = currentScaleY + (hiehtNode / 2)
+                            }
+                            currentScaleY += d.curentScaleY
+
+                            return positonY
+                        })
+                        .text((d) => {
+                            //d.node es el index que representa el nodo en la propiedad nodes de dataAlluvian
+                            
+                           
+                            return `${dataAlluvian.nodes[d.node].id}`
+                        })
+                        .attr('stroke', 'black')
+
+                        
                 }
-                currentScaleY+=d.curentScaleY
-                console.log("positon in y --->> ", positonY)
-                return positonY
-            })
-            .attr('stroke', 'black')
+
+                
+                
+                console.log("............rigth...............  ", )
+                generteLeables(columnRigth, 625, tex_ref_rigth)
+                console.log("ñññññññ ....>>>> ", columnRigth)
+                generteLeables(columnLeft, 30, tex_ref_left)
+               
+
             }
-            
+
 
 
 
@@ -518,12 +538,13 @@ export const Alluvian = () => {
                 <g ref={y_axistRef}></g>
                 <g ref={y_other_axistRef}></g>
                 <g ref={link_ref}></g>
-                <g ref={tex_ref}></g>
+                <g ref={tex_ref_left}></g>
+                <g ref={tex_ref_rigth}></g>
             </svg>
-            <div id='tooltip' ref={tooltip} style={{ height: 'auto', width: 'auto', background: "white", position: 'absolute', top: 20, left: 200, borderRadius: 15, padding:10, display:'none' }}>
+            <div id='tooltip' ref={tooltip} style={{ height: 'auto', width: 'auto', background: "white", position: 'absolute', top: 20, left: 200, borderRadius: 15, padding: 10, display: 'none' }}>
 
             </div>
-          
+
         </div>
     )
 }
