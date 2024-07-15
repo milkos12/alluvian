@@ -10,6 +10,7 @@ export const Alluvian = () => {
     const svgRef = useRef(null);
     const link_ref = useRef(null);
     const tooltip = useRef(null);
+    const tex_ref = useRef(null);
     const [dataAlluvian, setDataAlluvian] = useState(null);
     const [columnsScalerWeigs, setColumnsScalerWeigs] = useState(null)
 
@@ -125,10 +126,11 @@ export const Alluvian = () => {
             const wightsNodes = () => {
 
                 let allWights = []
-
+                console.log("data nodes ---->>>> ", columnsFilter)
                 columnsFilter.map(nodes => {
                     //aca saco los pesasos para los los nodos de la izquierda y de la derecha (la cantidad de conecciones repetidas en el archivo links_aluvian las reptedidas representa un solo links y como estan repetidas eso lesva a dar como el peso por asi decirlo  )
                     if (nodes.left.length) {
+                        
                         const node = nodes.left[0].source
                         allWights[node] = segmentationSumWeings(nodes.left, "left", node)
 
@@ -470,11 +472,39 @@ export const Alluvian = () => {
 
             })
 
-
-
-            //manula calculate soruce 
-
-            //test mauseover
+            
+            if(columnLeft.length) {
+                //put the textleables 
+         
+        
+            let currentScaleY = 0;
+            d3.select(tex_ref.current)
+            .selectAll('text')
+            .data(columnLeft)
+            .enter()
+            .append('text')
+            .text("type nodeees")
+            .attr('fill', 'red')
+            .attr('x', 5)
+            .attr('y', (d)=> {
+                const hiehtNode  =  d.curentScaleY
+                
+                //positionatnion  for leables base in the escaler of nodes 
+                //divide y suma entre dos para no dejar el texto en el principio sino en el centro 
+                let positonY = 0;
+                if(currentScaleY > 0){
+                    positonY =  currentScaleY + (hiehtNode/2)
+                    
+                } {
+                    positonY = currentScaleY + (hiehtNode/2)
+                }
+                currentScaleY+=d.curentScaleY
+                console.log("positon in y --->> ", positonY)
+                return positonY
+            })
+            .attr('stroke', 'black')
+            }
+            
 
 
 
@@ -488,10 +518,12 @@ export const Alluvian = () => {
                 <g ref={y_axistRef}></g>
                 <g ref={y_other_axistRef}></g>
                 <g ref={link_ref}></g>
+                <g ref={tex_ref}></g>
             </svg>
-            <div id='tooltip' ref={tooltip} style={{ height: 'auto', width: 'auto', background: "white", position: 'absolute', top: 20, left: 200, borderRadius: 15, padding:10, }}>
+            <div id='tooltip' ref={tooltip} style={{ height: 'auto', width: 'auto', background: "white", position: 'absolute', top: 20, left: 200, borderRadius: 15, padding:10, display:'none' }}>
 
             </div>
+          
         </div>
     )
 }
