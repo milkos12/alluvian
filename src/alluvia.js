@@ -9,7 +9,7 @@ export const Alluvian = () => {
     const y_other_axistRef = useRef(null);
     const svgRef = useRef(null);
     const link_ref = useRef(null);
-    const link_ref_2 = useRef(null);
+    const tooltip = useRef(null);
     const [dataAlluvian, setDataAlluvian] = useState(null);
     const [columnsScalerWeigs, setColumnsScalerWeigs] = useState(null)
 
@@ -244,7 +244,7 @@ export const Alluvian = () => {
             }
 
             //aca uso nuevamente las referencias en memoria para guardar informacion que me ayuda a ubicar los links 
-            
+
             const saveCorrdenatesYEachNode = (d) => {
 
                 const scaler = scalerLinkns(d.curentScaleY, d.sumLinks, d.beforeSca)
@@ -299,7 +299,7 @@ export const Alluvian = () => {
 
 
 
-
+            
 
 
 
@@ -395,15 +395,17 @@ export const Alluvian = () => {
 
 
             let sumHeigLinks = 0;
+            d3.select(link_ref.current).selectAll('*').remove()
             // generacion de los links voy node por node en de la izquierda y basado en esta izquierda voy a generar las coodrdenas en la parte derecha en target
             columnLeft.forEach((columnLeftNodes) => {
+            
                 d3.select(link_ref.current)
                     .selectAll('g')
                     .data(columnLeftNodes.linksArray).join('path')
                     .attr('d', (d) => {
                         //el array que había creado de los links que había creado anteriormente
                         const parseArrayLinks = Object.entries(d)
-                        
+
                         const escaler = currentNode.scalerLinks(parseArrayLinks[0][1])
 
                         sumHeigLinks += escaler
@@ -417,16 +419,62 @@ export const Alluvian = () => {
                         const escaler = currentNode.scalerLinks(parseArrayLinks[0][1])
                         return escaler
                     })
-
+                    //aditional information 
+                    .attr('data-node-origin', (d) => columnLeftNodes.node)
+                    .attr('data-node-destination', (d)=>{
+                        const parseArrayLinks = Object.entries(d)
+                        return parseArrayLinks[0][0]
+                    })
                     .attr('stroke', (d) => "hsl(" + Math.random() * 360 + ",100%,50%)")
                     .attr('fill', 'none')
-                    .attr('fill-opacity', '50%')
+                    .attr('opacity', '0.5')
+                    .on('mouseover', function (envent) {
+                        d3.select(this)
+                            .attr('stroke', 'red')
+
+                        //info for tooltip
+                        const dataInfoLink = () => {
+
+                            const filterTest = d3.select(this).filter((d) => d)
+                            const nodeOrigin = filterTest._groups[0][0].attributes["data-node-origin"].value
+                            const nodeDestination = filterTest._groups[0][0].attributes["data-node-destination"].value
+                            const texToolTop = `Node origin: ${nodeOrigin} --> Destination: ${nodeDestination}`;
+                            return texToolTop
+                        }
+
+        
+
+                        d3.select(tooltip.current).selectAll('*').remove()
+                        d3.select(tooltip.current)
+                            .join()
+                            .append('p')
+                            .text(dataInfoLink())
+
+                    })
+                    .on('mousemove', function (event) {
+
+                        d3.select(tooltip.current)
+                            .style('top', `${event.clientY - 30}px`)
+                            .style('left', `${event.clientX + 20}px`)
+                            .style('display', 'block')
+                            .style('opacity', '0.9')
+                    })
+                    .on('mouseout', function () {
+                        d3.select(this)
+                            .attr('stroke', "hsl(" + Math.random() * 360 + ",100%,50%)")
+
+                        d3.select(tooltip.current)
+                            .style('display', 'none')
+
+                    })
+
             })
+
 
 
             //manula calculate soruce 
 
-
+            //test mauseover
 
 
 
@@ -435,14 +483,15 @@ export const Alluvian = () => {
 
 
     return (
-        <div>
-            <svg ref={svgRef}>
+        <div style={{ position: 'relative' }}>
+            <svg ref={svgRef} >
                 <g ref={y_axistRef}></g>
                 <g ref={y_other_axistRef}></g>
                 <g ref={link_ref}></g>
-                <g ref={link_ref_2}></g>
-
             </svg>
+            <div id='tooltip' ref={tooltip} style={{ height: 'auto', width: 'auto', background: "white", position: 'absolute', top: 20, left: 200, borderRadius: 15, padding:10, }}>
+
+            </div>
         </div>
     )
 }
